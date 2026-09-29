@@ -34,4 +34,4 @@ jobs:
           run(`cmake --build build --parallel 2`)
           run(`cmake --install build`)
           ENV["DACE_LIBRARY"] = joinpath(prefix, "lib", "libdace.$dlext")
-          include("interfaces/julia/test.jl")
+          include(joinpath(pwd(), "interfaces/julia/test.jl"))
