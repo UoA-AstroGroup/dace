@@ -1,1 +1,8 @@
+include(CMakeFindDependencyMacro)
+if(@WITH_EIGEN@)
+  find_dependency(Eigen3 @Eigen3_VERSION@ NO_MODULE)
+endif()
+if(@WITH_JULIA@)
+  find_dependency(JlCxx @JlCxx_VERSION@ CONFIG)
+endif()
 include("${CMAKE_CURRENT_LIST_DIR}/dace.cmake")
