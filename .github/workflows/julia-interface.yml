@@ -22,7 +22,7 @@ jobs:
         shell: julia --color=yes --project=build/deps {0}
         run: |
           using Pkg
-          Pkg.add(["CxxWrap", "Eigen_jll"])
+          Pkg.add([PackageSpec(name="CxxWrap"), PackageSpec(name="Eigen_jll", version="5")])
           using CxxWrap, Eigen_jll, Libdl
           prefix = joinpath(pwd(), "build", "install")
           dependencies = join([CxxWrap.prefix_path(), Eigen_jll.artifact_dir], ';')
