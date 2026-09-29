@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.13)
 
 # since MacOS 10.14 (XCode 10.0), default includes are no longer installed to /usr/include or /usr/local/include
 # the SDK to use must be specified explicitly in CMAKE_OSX_SYSROOT as it seems at least cmake 3.12.4 does not find it automatically if left empty
@@ -72,13 +72,15 @@ option(WITH_EIGEN "Include additional linear algebra routines delegated to Eigen
 option(WITH_JULIA "Build the Julia interface" OFF)
 
 if(WITH_EIGEN)
-  find_package(Eigen3 3.4 REQUIRED)
+  find_package(Eigen3 5 QUIET NO_MODULE)
+  if(NOT Eigen3_FOUND)
+    find_package(Eigen3 3.4 REQUIRED NO_MODULE)
+  endif()
   add_definitions(-DWITH_EIGEN)
   message(STATUS "Found Eigen3 v${Eigen3_VERSION}: ${Eigen3_DIR}")
-  set(Eigen3_INCLUDE_DIRS "${Eigen3_DIR}/../../../include")
 endif()
 if(WITH_JULIA)
-  find_package(JlCxx REQUIRED)
+  find_package(JlCxx 0.14.11 REQUIRED)
   message(STATUS "Found JlCxx v${JlCxx_VERSION}: ${JlCxx_DIR}")
 endif()
 
@@ -129,9 +131,6 @@ configure_file(core/include/dace/config.h.in core/include/dace/config.h)
 # process the subdirectories with actual code
 add_subdirectory(core/contrib)
 add_subdirectory(core)
-if(WITH_EIGEN)
-  include_directories(${Eigen3_INCLUDE_DIRS})
-endif()
 if(WITH_JULIA)
   add_subdirectory(interfaces/julia)
 endif()
@@ -147,10 +146,17 @@ if(WITH_JULIA)
 else()
   add_library(dace SHARED $<TARGET_OBJECTS:c_core> $<TARGET_OBJECTS:c_core_contrib> $<TARGET_OBJECTS:dacecxx>)
 endif()
-if(WITH_EIGEN)
-  target_compile_definitions(dace PUBLIC WITH_EIGEN)
-endif()
 add_library(dace_s STATIC $<TARGET_OBJECTS:c_core_s> $<TARGET_OBJECTS:c_core_contrib_s> $<TARGET_OBJECTS:dacecxx_s>)
+if(WITH_EIGEN)
+  foreach(target dacecxx dacecxx_s dace dace_s)
+    target_link_libraries(${target} PUBLIC Eigen3::Eigen)
+  endforeach()
+  target_compile_definitions(dace PUBLIC WITH_EIGEN)
+  target_compile_definitions(dace_s PUBLIC WITH_EIGEN)
+  if(WITH_JULIA)
+    target_link_libraries(dacejulia PUBLIC Eigen3::Eigen)
+  endif()
+endif()
 
 # hard code all required include directories when building from source (C++ includes, core includes, config.h include)
 target_include_directories(dace INTERFACE $<INSTALL_INTERFACE:include>
@@ -214,7 +220,7 @@ export(EXPORT dace
 
 configure_file("cmake/daceConfig.cmake"
   "${CMAKE_CURRENT_BINARY_DIR}/dace/daceConfig.cmake"
-  COPYONLY
+  @ONLY
 )
 
 # install cmake package files

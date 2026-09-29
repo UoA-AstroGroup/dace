@@ -1,0 +1,37 @@
+name: Julia interface
+
+on:
+  push:
+    branches: [julia-interface]
+  pull_request:
+    branches: [julia-interface]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Build and test with current dependencies
+        shell: julia --color=yes --project=build/deps {0}
+        run: |
+          using Pkg
+          Pkg.add(["CxxWrap", "Eigen_jll"])
+          using CxxWrap, Eigen_jll, Libdl
+          prefix = joinpath(pwd(), "build", "install")
+          dependencies = join([CxxWrap.prefix_path(), Eigen_jll.artifact_dir], ';')
+          julia = joinpath(Sys.BINDIR, Base.julia_exename())
+          run(`cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_PREFIX_PATH=$dependencies
+              -DJulia_EXECUTABLE=$julia -DWITH_JULIA=ON -DWITH_EIGEN=ON
+              -DWITH_ALGEBRAICMATRIX=ON -DWITH_PTHREAD=ON -DCUSTOM_EXIT=ON`)
+          run(`cmake --build build --parallel 2`)
+          run(`cmake --install build`)
+          ENV["DACE_LIBRARY"] = joinpath(prefix, "lib", "libdace.$dlext")
+          include("interfaces/julia/test.jl")
