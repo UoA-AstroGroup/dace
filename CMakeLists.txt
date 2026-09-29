@@ -72,10 +72,7 @@ option(WITH_EIGEN "Include additional linear algebra routines delegated to Eigen
 option(WITH_JULIA "Build the Julia interface" OFF)
 
 if(WITH_EIGEN)
-  find_package(Eigen3 5 QUIET NO_MODULE)
-  if(NOT Eigen3_FOUND)
-    find_package(Eigen3 3.4 REQUIRED NO_MODULE)
-  endif()
+  find_package(Eigen3 5 REQUIRED NO_MODULE)
   add_definitions(-DWITH_EIGEN)
   message(STATUS "Found Eigen3 v${Eigen3_VERSION}: ${Eigen3_DIR}")
 endif()
